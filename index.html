@@ -2,113 +2,87 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>VSCode C++ Web IDE</title>
+<title>Web C++ VSCode Style</title>
 <style>
-    body { margin:0; background:#1e1e2e; color:#ddd; display:flex; height:100vh; overflow:hidden; }
-    #sidebar { width:180px; background:#252535; border-right:1px solid #333; padding:10px; box-sizing:border-box; }
-    #sidebar button { width:100%; padding:8px; margin-bottom:8px; background:#0078ff; border:none; color:#fff; cursor:pointer; border-radius:4px; }
-    #editor { flex:2; }
-    #io-panel { width:35%; background:#181825; display:flex; flex-direction:column; }
-    #inputArea, #outputArea { flex:1; margin:10px; padding:10px; background:#000; border:1px solid #444; border-radius:6px; color:#0f0; }
-    #outputArea { white-space:pre; color:#0ff; }
+body {
+    margin: 0;
+    font-family: "Consolas", monospace;
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+}
+
+header {
+    background-color: #007acc;
+    color: white;
+    padding: 10px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+#editor {
+    margin: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+textarea {
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    border: 1px solid #333;
+    height: 150px;
+    font-family: monospace;
+    font-size: 14px;
+    padding: 10px;
+    resize: vertical;
+}
+
+#runBtn {
+    margin: 10px 0;
+    padding: 8px 16px;
+    background-color: #0e639c;
+    border: none;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100px;
+}
+
+#runBtn:hover {
+    background-color: #1177bb;
+}
+
+#output {
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    border: 1px solid #333;
+    padding: 10px;
+    min-height: 100px;
+    white-space: pre-wrap;
+    overflow-y: auto;
+}
 </style>
 </head>
-
 <body>
 
-<div id="sidebar">
-    <button onclick="addFile()">📄 New File</button>
-    <button onclick="runCpp()">▶️ Run</button>
-    <div id="fileList"></div>
+<header>Web C++ Editor (VSCode Style)</header>
+
+<div id="editor">
+    <textarea id="inputCode" placeholder="Enter your name..."></textarea>
+    <button id="runBtn">Run</button>
+    <pre id="output"></pre>
 </div>
 
-<div id="editor"></div>
-
-<div id="io-panel">
-    <textarea id="inputArea" placeholder="Nhập input cho cin..."></textarea>
-    <pre id="outputArea"></pre>
-</div>
-
-<!-- Monaco -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
-
-<!-- BriWasm (new CDN) -->
-<script src="https://cdn.jsdelivr.net/npm/briwasm@latest/dist/briwasm.js"></script>
-
+<script src="a.js"></script>
 <script>
-let files = {
-    "main.cpp": `#include <iostream>
-using namespace std;
+const output = document.getElementById("output");
+const input = document.getElementById("inputCode");
 
-int main() {
-    string name;
-    cin >> name;
-    cout << "Hello " << name << "!" << endl;
-}`
-};
-
-let currentFile = "main.cpp";
-let editor;
-
-// 🟦 hiển thị danh sách file
-function renderFileList() {
-    const list = document.getElementById("fileList");
-    list.innerHTML = "";
-    for (let name in files) {
-        let div = document.createElement("div");
-        div.style.padding = "6px";
-        div.style.cursor = "pointer";
-        div.textContent = name;
-        div.onclick = () => switchFile(name);
-        if (name === currentFile) div.style.background = "#444";
-        list.appendChild(div);
+Module['onRuntimeInitialized'] = () => {
+    document.getElementById("runBtn").onclick = () => {
+        // Gọi hàm main trong C++ WebAssembly
+        Module.ccall('main','number',[],[]);
+        output.textContent = "Program executed! Check console for output.";
     }
-}
-
-function switchFile(name) {
-    files[currentFile] = editor.getValue();
-    currentFile = name;
-    editor.setValue(files[name]);
-    renderFileList();
-}
-
-// 🟩 đảm bảo global cho onclick
-window.addFile = function () {
-    const name = prompt("Tên file:", "utils.h");
-    if (!name || files[name]) return;
-    files[name] = "// new file";
-    renderFileList();
-};
-
-require.config({ paths: { "vs": "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs" }});
-require(["vs/editor/editor.main"], () => {
-    editor = monaco.editor.create(document.getElementById("editor"), {
-        value: files[currentFile],
-        language: "cpp",
-        theme: "vs-dark",
-        automaticLayout: true
-    });
-    renderFileList();
-});
-
-// 🟦 chạy C++ từ WebAssembly
-window.runCpp = async function () {
-    files[currentFile] = editor.getValue();
-    const input = document.getElementById("inputArea").value;
-    const output = document.getElementById("outputArea");
-
-    output.textContent = "⏳ Compiling...\n";
-
-    await BriWasm.ready;
-    const fileArray = Object.keys(files).map(name => ({
-        name, content: files[name]
-    }));
-
-    const result = BriWasm.cpp(fileArray, input);
-
-    output.textContent =
-        (result.stdout || "") +
-        (result.stderr ? "\n❌ " + result.stderr : "");
 };
 </script>
 
